@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -63,7 +64,16 @@ func indexOf(s []int, x int) int {
 	return -1
 }
 
-func stochasticTwoOpt(permutation []int) []int {
+type Edge struct {
+	left  int
+	right int
+}
+
+func stochasticTwoOpt(parent []int) ([]int, []Edge) {
+	//fmt.Println(parent)
+	permutation := make([]int, len(parent))
+	copy(permutation, parent)
+
 	city1, city2 := rand.Intn(len(permutation)), rand.Intn(len(permutation))
 
 	exclude := []int{city1}
@@ -95,60 +105,125 @@ func stochasticTwoOpt(permutation []int) []int {
 	// reverse function will be applied to the permutation slice imidiately no need to assign the reversed
 	// portion back to the slice
 	reverse(permutation[city1:city2])
+	//fmt.Println(city1, city2)
 
-	return permutation
+	if city1 == 0 {
+		city1++
+	}
+
+	if city2 == 0 {
+		city2++
+	}
+	//fmt.Println(parent)
+	//fmt.Println(permutation)
+	return permutation, []Edge{{parent[city1-1], parent[city1]}, {parent[city2-1], parent[city2]}}
+}
+
+func isTabu(permutation []int, tabuList []Edge) bool {
+	city2 := 0
+
+	for index, city1 := range permutation {
+		if index == len(permutation)-1 {
+			city2 = permutation[0]
+		} else {
+			city2 = permutation[index+1]
+		}
+
+		for _, forbiddenEdge := range tabuList {
+			edge := Edge{city1, city2}
+			//fmt.Println(edge)
+			//fmt.Println(forbiddenEdge)
+			if forbiddenEdge == edge {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 type Candidate struct {
 	vector []int
 	cost   int
+	edges  []Edge
 }
 
-func createNeighbor(current Candidate, cities []City) Candidate {
+type CandidateVector []Candidate
+
+func (c CandidateVector) Len() int {
+	return len(c)
+}
+
+func (c CandidateVector) Less(i, j int) bool {
+	return c[i].cost < c[j].cost
+}
+
+func (c CandidateVector) Swap(i, j int) {
+	c[j], c[i] = c[i], c[j]
+}
+
+func generateCandidate(best Candidate, tabuList []Edge, cities []City) Candidate {
+	permutation := make([]int, len(cities))
+	edges := make([]Edge, 2)
+
+	for {
+		permutation, edges = stochasticTwoOpt(best.vector)
+
+		if !isTabu(permutation, tabuList) {
+			break
+		}
+	}
+
 	candidate := Candidate{}
-
-	// create a new epmty vector and copy the current vector into it since assigning this vector in go
-	// would apply changes to both vectors (both are treated like a pointer to the same vector)
-	candidate.vector = make([]int, len(current.vector))
-	copy(candidate.vector, current.vector)
-	candidate.vector = stochasticTwoOpt(candidate.vector)
+	candidate.vector = permutation
 	candidate.cost = cost(candidate.vector, cities)
-
+	candidate.edges = edges
+	//fmt.Println(permutation)
 	return candidate
 }
 
-func shouldAccept(candidate, current Candidate, temp float64) bool {
-	if candidate.cost <= current.cost {
-		return true
-	}
-
-	res := math.Exp(float64(current.cost-candidate.cost) / temp)
-	rnd := rand.Float64()
-
-	return res > rnd
-}
-
-func search(cities []City, iterations int, max_temp, temp_change float64) Candidate {
+func search(cities []City, tabuSize, maxCandidates, iterations int) Candidate {
 	current := Candidate{}
 	current.vector = randomPermutation(cities)
 	current.cost = cost(current.vector, cities)
+	//fmt.Println("current", current)
+	best := current
 
-	temp, best := max_temp, current
+	tabuList := make([]Edge, tabuSize)
 
 	for i := 0; i < iterations; i++ {
-		candidate := createNeighbor(current, cities)
-		temp = temp * temp_change
-
-		if shouldAccept(candidate, current, temp) {
-			current = candidate
+		candidates := make([]Candidate, maxCandidates)
+		for j, _ := range candidates {
+			candidates[j] = generateCandidate(current, tabuList, cities)
 		}
 
-		if candidate.cost < best.cost {
-			best = candidate
+		sort.Sort(CandidateVector(candidates))
+		bestCandidate := candidates[0]
+		bestCandidateEdges := bestCandidate.edges
+
+		if bestCandidate.cost < current.cost {
+			current = bestCandidate
+			if bestCandidate.cost < best.cost {
+				best = bestCandidate
+
+				for _, edge := range bestCandidateEdges {
+					tabuList = append(tabuList, edge)
+					//fmt.Println("push")
+				}
+
+				for {
+					//pop
+					tabuList = tabuList[1:len(tabuList)]
+					//fmt.Println("pop")
+					if len(tabuList) <= tabuSize {
+						break
+					}
+				}
+			}
 		}
 
 		if (i+1)%100 == 0 {
-			fmt.Println("Iteration", i+1, "temp=", temp, "best=", best)
+			fmt.Println("Iteration", i+1, "best=", best, "taboo=", tabuList)
 		}
 	}
 
@@ -173,13 +248,13 @@ func main() {
 		{95, 260}, {875, 920}, {700, 500}, {555, 815}, {830, 485}, {1170, 65},
 		{830, 610}, {605, 625}, {595, 360}, {1340, 725}, {1740, 245}}
 
-	iterations := 20000   //original: 2000
-	max_temp := 1000000.0 //original: 100000.0
-	temp_change := 0.98
+	iterations := 1000 //100
+	tabuSize := 15     //15
+	maxCandidates := 50
 
-	best := search(cities, iterations, max_temp, temp_change)
+	best := search(cities, tabuSize, maxCandidates, iterations)
 
-	fmt.Println(best.cost)
+	fmt.Println(best)
 
 	fmt.Println("Result should be 7542.")
 }
