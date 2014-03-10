@@ -14,12 +14,12 @@
  * Variable Neighborhood Search
  * Greedy Randomized Adaptive Search
  * Scatter Search
- * Tabu Search
+ * [Tabu Search](https://github.com/GrimmKull/goclever/blob/master/tabu_search.go)
  * Reactive Tabu Search
 
 ### Evolutionary Algorithms
 
- * Genetic Algorithm
+ * [Genetic Algorithm](https://github.com/GrimmKull/goclever/blob/master/genetic_algorithm.go)
  * Genetic Programming
  * Evolution Strategies
  * Differential Evolution
@@ -32,7 +32,7 @@
 
 ### Physical Algorithms
 
- * Simulated Annealing
+ * [Simulated Annealing](https://github.com/GrimmKull/goclever/blob/master/simulated_annealing.go)
  * Extremal Optimization
  * Harmony Search
  * Cultural Algorithm
@@ -64,7 +64,7 @@
 
 ### Neural Algorithms
 
- * Perceptron
+ * [Perceptron](https://github.com/GrimmKull/goclever/blob/master/perceptron.go)
  * Back-propagation
  * Hopfield Network
  * Learning Vector Quantization
