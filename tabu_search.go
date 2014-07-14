@@ -223,7 +223,7 @@ func search(cities []City, tabuSize, maxCandidates, iterations int) Candidate {
 		}
 
 		if (i+1)%100 == 0 {
-			fmt.Println("Iteration", i+1, "best=", best, "taboo=", tabuList)
+			//fmt.Println("Iteration", i+1, "best=", best, "taboo=", tabuList)
 		}
 	}
 
@@ -254,7 +254,7 @@ func main() {
 
 	best := search(cities, tabuSize, maxCandidates, iterations)
 
-	fmt.Println(best)
+	//fmt.Println(best)
 
-	fmt.Println("Result should be 7542.")
+	fmt.Println("Result is:", best.cost, ", Result should be 7542.")
 }
